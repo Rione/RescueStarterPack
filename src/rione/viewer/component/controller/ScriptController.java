@@ -113,6 +113,7 @@ public class ScriptController implements Controller {
 	private final static String funcSaveImg = "saveImg";
 	private final static String funcSaveLog = "saveLog";
 	private final static String funcFollowFocus = "followFocus";
+	private final static String funcKillAgents = "killAgents";
 	private final static String funcCvColor = "cvColor";
 	private final static String funcAtColor = "atColor";
 	private final static String funcFbColor = "fbColor";
@@ -153,6 +154,7 @@ public class ScriptController implements Controller {
 		saveImage = c.saveImage();
 		saveLog = c.saveLog();
 		followFocus = c.followFocus();
+		killAgents = c.killAgents();
 		cvColor = c.getCivilianColor();
 		atColor = c.getAmbulanceTeamColor();
 		fbColor = c.getFireBrigadeColor();
@@ -172,6 +174,7 @@ public class ScriptController implements Controller {
 			funcSaveImg,
 			funcSaveLog,
 			funcFollowFocus,
+			funcKillAgents,
 			funcCvColor,
 			funcAtColor,
 			funcFbColor,
@@ -179,6 +182,7 @@ public class ScriptController implements Controller {
 			funcUpdate,
 		};
 		final EntityID focusedID = c.getFocus();
+		//TODO コントロール追加時に要変更
 		final Object[] values = new Object[] {
 			(focusedID != null) ? focusedID.getValue() : null,
 			c.visibleEntity(),
@@ -190,6 +194,7 @@ public class ScriptController implements Controller {
 			c.saveImage(),
 			c.saveLog(),
 			c.followFocus(),
+			c.killAgents(),
 			toHex(c.getCivilianColor()),
 			toHex(c.getAmbulanceTeamColor()),
 			toHex(c.getFireBrigadeColor()),
@@ -327,44 +332,23 @@ public class ScriptController implements Controller {
 
 	@Override
 	public Controller update(int time) {
-		currentFocus = currentFocusResult(time);
-		visibleEntity = visibleEntityResult(time);
-		customExtension = customExtensionResult(time);
-		customRender = customRenderResult(time);
-		lastCommand = lastCommandResult(time);
-		plotLocation = plotLocationResult(time);
-		saveFolderName = saveFolderNameResult(time);
-		saveImage = saveImageResult(time);
-		saveLog = saveLogResult(time);
-		followFocus = followFocusResult(time);
-		cvColor = agentColorResult(time, funcCvColor);
-		atColor = agentColorResult(time, funcAtColor);
-		fbColor = agentColorResult(time, funcFbColor);
-		pfColor = agentColorResult(time, funcPfColor);
-		return updateResult(time);
-	}
-
-	private boolean plotLocationResult(int t) {
-		Boolean result = false;
-		try {
-			result = (Boolean) inv.invokeFunction("plot", t);
-		}
-		catch (ScriptException e) {
-			// スクリプト内エラー
-			if (scriptDebug)
-				e.printStackTrace();
-		}
-		catch (ClassCastException e) {
-			// Boolean以外の値
-			if (scriptDebug)
-				e.printStackTrace();
-		}
-		catch (NoSuchMethodException e) {
-			// メソッドが見つからない
-			if (scriptDebug)
-				System.out.println("no plot method");
-		}
-		return result;
+		//TODO コントロール追加時に要変更
+		currentFocus = currentFocusFunc(time);
+		visibleEntity = boolFunc(funcVisible, time);
+		customExtension = boolFunc(funcExtension, time);
+		customRender = boolFunc(funcRender, time);
+		lastCommand = boolFunc(funcCommand, time);
+		plotLocation = boolFunc(funcPlot, time);
+		saveFolderName = stringFunc(funcSaveFolder, time);
+		saveImage = boolFunc(funcSaveImg, time);
+		saveLog = boolFunc(funcSaveLog, time);
+		followFocus = boolFunc(funcFollowFocus, time);
+		killAgents = boolFunc(funcKillAgents, time);
+		cvColor = colorFunc(funcCvColor, time);
+		atColor = colorFunc(funcAtColor, time);
+		fbColor = colorFunc(funcFbColor, time);
+		pfColor = colorFunc(funcPfColor, time);
+		return updateFunc(time);
 	}
 
 	/**
@@ -373,7 +357,7 @@ public class ScriptController implements Controller {
 	 * @param t
 	 * @return
 	 */
-	private EntityID currentFocusResult(int t) {
+	private EntityID currentFocusFunc(int t) {
 		Integer result;
 		try {
 			// Integerに直接キャストするとClassCastException
@@ -395,22 +379,22 @@ public class ScriptController implements Controller {
 		catch (NoSuchMethodException e) {
 			// メソッドが見つからない
 			if (scriptDebug)
-				System.out.println("no focus method");
+				System.out.println("no " + funcUpdate + " method");
 		}
 
 		return currentFocus;
 	}
 
 	/**
-	 * スクリプトからvisibleEntityを取得
+	 * スクリプトからboolean値を取得
 	 * 
 	 * @param t
 	 * @return
 	 */
-	private boolean visibleEntityResult(int t) {
+	private boolean boolFunc(String funcName, int t) {
 		Boolean result = false;
 		try {
-			result = (Boolean) inv.invokeFunction(funcVisible, t);
+			result = (Boolean) inv.invokeFunction(funcName, t);
 		}
 		catch (ScriptException e) {
 			// スクリプト内エラー
@@ -425,7 +409,7 @@ public class ScriptController implements Controller {
 		catch (NoSuchMethodException e) {
 			// メソッドが見つからない
 			if (scriptDebug)
-				System.out.println("no visible method");
+				System.out.println("no " +  funcName + " method");
 		}
 		return result;
 	}
@@ -435,94 +419,10 @@ public class ScriptController implements Controller {
 	 * @param t
 	 * @return
 	 */
-	private boolean customExtensionResult(int t) {
-		Boolean result = false;
-		try {
-			result = (Boolean) inv.invokeFunction(funcExtension, t);
-		}
-		catch (ScriptException e) {
-			// スクリプト内エラー
-			if (scriptDebug)
-				e.printStackTrace();
-		}
-		catch (ClassCastException e) {
-			// Boolean以外の値
-			if (scriptDebug)
-				e.printStackTrace();
-		}
-		catch (NoSuchMethodException e) {
-			// メソッドが見つからない
-			if (scriptDebug)
-				System.out.println("no extension method");
-		}
-		return result;
-	}
-
-	/**
-	 * 
-	 * @param t
-	 * @return
-	 */
-	private boolean customRenderResult(int t) {
-		Boolean result = false;
-		try {
-			result = (Boolean) inv.invokeFunction(funcRender, t);
-		}
-		catch (ScriptException e) {
-			// スクリプト内エラー
-			if (scriptDebug)
-				e.printStackTrace();
-		}
-		catch (ClassCastException e) {
-			// Boolean以外の値
-			if (scriptDebug)
-				e.printStackTrace();
-		}
-		catch (NoSuchMethodException e) {
-			// メソッドが見つからない
-			if (scriptDebug)
-				System.out.println("no render method");
-		}
-		return result;
-	}
-
-	/**
-	 * 
-	 * @param t
-	 * @return
-	 */
-	private boolean lastCommandResult(int t) {
-		Boolean result = false;
-		try {
-			result = (Boolean) inv.invokeFunction(funcCommand, t);
-		}
-		catch (ScriptException e) {
-			// スクリプト内エラー
-			if (scriptDebug)
-				e.printStackTrace();
-		}
-		catch (ClassCastException e) {
-			// Boolean以外の値
-			if (scriptDebug)
-				e.printStackTrace();
-		}
-		catch (NoSuchMethodException e) {
-			// メソッドが見つからない
-			if (scriptDebug)
-				System.out.println("no command method");
-		}
-		return result;
-	}
-
-	/**
-	 * 
-	 * @param t
-	 * @return
-	 */
-	private String saveFolderNameResult(int t) {
+	private String stringFunc(String funcName, int t) {
 		Object result = null;
 		try {
-			result = inv.invokeFunction(funcSaveFolder, t);
+			result = inv.invokeFunction(funcName, t);
 		}
 		catch (ScriptException e) {
 			// スクリプト内エラー
@@ -537,7 +437,7 @@ public class ScriptController implements Controller {
 		catch (NoSuchMethodException e) {
 			// メソッドが見つからない
 			if (scriptDebug)
-				System.out.println("no saveFolder method");
+				System.out.println("no " + funcName +" method");
 		}
 		if (result == null) {
 			return null;
@@ -548,92 +448,13 @@ public class ScriptController implements Controller {
 	/**
 	 * 
 	 * @param t
-	 * @return
-	 */
-	private boolean saveImageResult(int t) {
-		Boolean result = false;
-		try {
-			result = (Boolean) inv.invokeFunction("saveImg", t);
-		}
-		catch (ScriptException e) {
-			// スクリプト内エラー
-			if (scriptDebug)
-				e.printStackTrace();
-		}
-		catch (ClassCastException e) {
-			// Boolean以外の値
-			if (scriptDebug)
-				e.printStackTrace();
-		}
-		catch (NoSuchMethodException e) {
-			// メソッドが見つからない
-			if (scriptDebug)
-				System.out.println("no saveImg method");
-		}
-		return result;
-	}
-
-	/**
-	 * 
-	 * @param t
-	 * @return
-	 */
-	private boolean saveLogResult(int t) {
-		Boolean result = false;
-		try {
-			result = (Boolean) inv.invokeFunction(funcSaveLog, t);
-		}
-		catch (ScriptException e) {
-			// スクリプト内エラー
-			if (scriptDebug)
-				e.printStackTrace();
-		}
-		catch (ClassCastException e) {
-			// Boolean以外の値
-			if (scriptDebug)
-				e.printStackTrace();
-		}
-		catch (NoSuchMethodException e) {
-			// メソッドが見つからない
-			if (scriptDebug)
-				System.out.println("no saveLog method");
-		}
-		return result;
-	}
-
-	public boolean followFocusResult(int t) {
-		Boolean result = false;
-		try {
-			result = (Boolean) inv.invokeFunction(funcFollowFocus, t);
-		}
-		catch (ScriptException e) {
-			// スクリプト内エラー
-			if (scriptDebug)
-				e.printStackTrace();
-		}
-		catch (ClassCastException e) {
-			// Boolean以外の値
-			if (scriptDebug)
-				e.printStackTrace();
-		}
-		catch (NoSuchMethodException e) {
-			// メソッドが見つからない
-			if (scriptDebug)
-				System.out.println("no followFocus method");
-		}
-		return result;
-	}
-
-	/**
-	 * 
-	 * @param t
 	 * @param agent
 	 * @return
 	 */
-	private Color agentColorResult(int t, String agentColorFunc) {
+	private Color colorFunc(String funcName, int t) {
 		Integer result = null;
 		try {
-			result = ((Double) inv.invokeFunction(agentColorFunc, t)).intValue();
+			result = ((Double) inv.invokeFunction(funcName, t)).intValue();
 		}
 		catch (ScriptException e) {
 			// スクリプト内エラー
@@ -647,7 +468,7 @@ public class ScriptController implements Controller {
 		catch (NoSuchMethodException e) {
 			// メソッドが見つからない
 			if (scriptDebug)
-				System.out.println("no " + agentColorFunc + " method");
+				System.out.println("no " + funcName + " method");
 		}
 		if (result == null)
 			return null;
@@ -659,22 +480,8 @@ public class ScriptController implements Controller {
 	 * @param t
 	 * @return
 	 */
-	private Controller updateResult(int t) {
-		Object result = null;
-		try {
-			result = inv.invokeFunction(funcUpdate, t);
-		}
-		catch (ScriptException e) {
-			// スクリプト内エラー
-			if (scriptDebug)
-				e.printStackTrace();
-			return new PanelController(this);
-		}
-		catch (NoSuchMethodException e) {
-			// メソッドが見つからない
-			if (scriptDebug)
-				System.out.println("no update method");
-		}
+	private Controller updateFunc(int t) {
+		String result = stringFunc(funcUpdate, t);
 		if (result == null) {
 			return this;
 		}
@@ -683,7 +490,7 @@ public class ScriptController implements Controller {
 			return new PanelController(this);
 		}
 		else if (result instanceof String) {
-			File newScript = new File((String) result);
+			File newScript = new File(result);
 			if (newScript.exists()) {
 				// ScriptController生成・データを引き継ぎ
 				return new ScriptController(this, newScript);
