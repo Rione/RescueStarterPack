@@ -1,0 +1,63 @@
+RoboCup Rescue Simulation
+	Sample agents and Ri-one viewer
+
+What is this?
+	This is a sample project to start RoboCup Rescue Simulation(RCRS).
+	It is include sample agents(AmbulanceTeam, FireBrigade, PoliceForce) and Viewer.
+
+Dependency:
+	Sun Java 6 or later(not OpenJDK)
+		you can check: $ java -version
+	ant 1.8 or later
+		you can check: $ ant -version
+		If you use Windows, you should set environment variables, JAVA_HOME and ANT_HOME.
+	RCRS Simulator Server(http://sourceforge.net/projects/roborescue/)	
+		$ ant complete-build
+		$ ant start-kernel # sample agents will start
+	large RAM
+		4GB or more is recommended
+	eclipse(recommended)
+
+Install and Compile:
+	download and extract or git clone
+		recommended directory:
+			(rescue folder)
+				(project folder)
+					src
+					jars
+					...
+			(rescue server, example: rescue-1.0a-2011)
+	Set environment variable.
+		RCRS_HOME=(rescue folder)
+	$ cd (rescue server)/boot/config
+	Edit kernel-inline.cfg and comment out(use '#') lines inserting sample agents.
+	$ cd (rescue server)
+		$ ant start-kernel
+	Open another console.
+	$ cd (project folder)
+	$ ant
+	$ ./run.sh
+		sorry, it is Unix only.
+			please write run.bat for windows.
+		you can also use runDebug.sh
+			It launch Ri-one viewer.
+
+What should I do?
+	renaming packages and Classes from sample to your team name
+	editing each agents to get good scores:
+		sample.at.SampleAmbulanceTeam
+		sample.at.SamplePoliceForce
+		sample.at.SampleFireBrigade
+	publishing your idea:
+		on the web, book and etc
+		Team Description Paper in RoboCup World Competition
+			It is held every year.
+		joining community in your country
+			SimJP(http://rc-oz.sourceforge.jp/pukiwiki/)で情報を得ることができます．
+			毎年JapanOpenや秋キャンプも開催しているので，ぜひ参加しましょう！
+
+==============================
+Ritsumeikan University Project Group
+	Department of RoboCup Simulation League
+	Ri-one
+	http://www.pj.is.ritsumei.ac.jp/ri-one/
