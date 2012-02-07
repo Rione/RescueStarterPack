@@ -10,7 +10,8 @@ Dependency:
 		you can check: $ java -version
 	ant 1.8 or later
 		you can check: $ ant -version
-		If you use Windows, you should set environment variables, JAVA_HOME and ANT_HOME.
+		If you use Windows, you should set environment variables.
+			JAVA_HOME and ANT_HOME
 	RCRS Simulator Server(http://sourceforge.net/projects/roborescue/)	
 		$ ant complete-build
 		$ ant start-kernel # sample agents will start
@@ -54,7 +55,7 @@ What should I do?
 			It is held every year.
 		joining community in your country
 			SimJP(http://rc-oz.sourceforge.jp/pukiwiki/)で情報を得ることができます．
-			毎年JapanOpenや秋キャンプも開催しているので，ぜひ参加しましょう！
+			毎年JapanOpenや秋キャンプも開催されるので，ぜひ参加しましょう！
 
 ==============================
 Ritsumeikan University Project Group
