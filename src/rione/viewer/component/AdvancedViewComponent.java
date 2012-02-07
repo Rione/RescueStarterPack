@@ -11,7 +11,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import rescuecore2.misc.gui.ScreenTransform;
 import rescuecore2.standard.entities.Human;
@@ -28,6 +27,10 @@ import rione.agent.DebugAgent;
 import rione.viewer.component.controller.Controller;
 import rione.viewer.component.controller.PanelController;
 import rione.viewer.component.controller.ScriptController;
+import rione.viewer.component.extension.BorderExtension;
+import rione.viewer.component.extension.EntityExtension;
+import rione.viewer.component.extension.ExtensionMap;
+import rione.viewer.component.extension.FillExtension;
 
 /**
  * 世界を自由に描く程度の能力
@@ -133,7 +136,6 @@ public class AdvancedViewComponent extends AnimatedWorldModelViewer {
 		transform.zoomOut();
 	}
 
-	// 一応残しておくけど、render自体もオーバーライド前提なのに、いらんやろ、普通。
 	/*
 	 * Do whatever needs doing before the layers are painted.
 	 */
@@ -168,31 +170,20 @@ public class AdvancedViewComponent extends AnimatedWorldModelViewer {
 		Stroke tmpStroke = g.getStroke();
 
 		// 装飾マップに従って描画
-		Map<EntityID, EntityExtension> extensionMap = createColorMap();
+		ExtensionMap extensionMap = createColorMap();
 		for (RenderedObject next : result) {
-			try {
-				EntityID id = ((AbstractEntity) next.getObject()).getID();
-				Shape shape = next.getShape();
-				if (shape == null) continue;
-				EntityExtension extension = extensionMap.get(id);
-
-				g.setColor(extension.getColor());
-				g.setStroke(extension.getStroke());
-				if (extension.getFill()) {
-					g.fill(shape);
-				} else {
-					g.draw(shape);
-				}
-			} catch (NullPointerException e) {
-			} catch (ClassCastException e) {
-			} catch (InternalError e) {
-			}
+			Object obj = next.getObject();
+			if (!(obj instanceof AbstractEntity)) continue;
+			EntityID id = ((AbstractEntity) obj).getID();
+			Shape shape = next.getShape();
+			if (shape == null) continue;
+			EntityExtension extension = extensionMap.get(id);
+			if (extension == null) continue;
+			extension.render(g, shape);
 		}
-
-		try {
-			// フォーカスされたEntityがAgentで、最後に呼び出されたメソッドが公開されていれば表示する
-			DebugAgent agent = getFocusAgent();
-
+		// フォーカスされたEntityがAgentで、最後に呼び出されたメソッドが公開されていれば表示する
+		DebugAgent agent = getFocusAgent();
+		if (agent != null) {	
 			// フォーカスのworldmodelの情報
 			if (controller.plotLocation()) {
 				StandardWorldModel aModel = agent.getWorld();
@@ -218,7 +209,6 @@ public class AdvancedViewComponent extends AnimatedWorldModelViewer {
 			if (controller.customRender()) {
 				agent.customRender(g, t, width, height);
 			}
-		} catch (NullPointerException e) {
 		}
 
 		// ルーラー表示
@@ -229,22 +219,6 @@ public class AdvancedViewComponent extends AnimatedWorldModelViewer {
 					- t.screenToX(endX), t.screenToY(startY)
 					- t.screenToY(endY))), 16, 32);
 		}
-
-		// ExpandedBlockade確認用
-		// for (RenderedObject next : result) {
-		// try {
-		// Blockade b = (Blockade) next.getObject();
-		// if (b.isApexesDefined()) {
-		// g.setColor(new Color(0, 0, 0, 128));
-		// g.fill(rione.util.Geometry.expandApexes(b.getApexes(), 500, t));
-		// g.setColor(Color.PINK);
-		// g.draw(next.getShape());
-		// }
-		// } catch (IllegalAccessException e) {
-		// e.printStackTrace();
-		// } catch (ClassCastException e) {
-		// }
-		// }
 
 		// 復元
 		g.setColor(tmpColor);
@@ -271,11 +245,9 @@ public class AdvancedViewComponent extends AnimatedWorldModelViewer {
 	 * @return
 	 * @throws NullPointerException
 	 */
-	protected DebugAgent getFocusAgent() throws NullPointerException {
+	protected DebugAgent getFocusAgent() {
 		// フォーカスされているEntityを取得
 		DebugAgent agent = AgentList.get(controller.getFocus());
-		if (agent == null)
-			throw new NullPointerException();
 		return agent;
 	}
 
@@ -284,122 +256,56 @@ public class AdvancedViewComponent extends AnimatedWorldModelViewer {
 	 * 
 	 * @return EntityIDと装飾(EntityExtension)の対応をあらわすマップ
 	 */
-	protected Map<EntityID, EntityExtension> createColorMap() {
+	protected ExtensionMap createColorMap() {
 		// 結果となる装飾マップ
-		Map<EntityID, EntityExtension> result = new HashMap<EntityID, EntityExtension>();
-		try {
-			DebugAgent agent = getFocusAgent();
-			// フォーカスがエージェントなら以下
-
+		ExtensionMap result = new ExtensionMap();
+		DebugAgent agent = getFocusAgent();
+		if (agent != null) {
 			// 視界
 			if (controller.visibleEntity() && world.getEntity(agent.getID()) instanceof Human) {
-				Set<EntityID> visibleIDs = agent.getVisibleEntity();
-				if (visibleIDs != null) {
-					for (EntityID id : visibleIDs) {
-						result.put(id, new EntityExtension(Color.PINK));
-					}
-				}
+				result.putExtensionToAllID(agent.getVisibleEntities(), new BorderExtension(Color.PINK));
 			}
-
-			// Civilianの色を反映
-			Color entityColor = controller.getCivilianColor();
-			if (entityColor != null) {
-				for (StandardEntity entity : world
-						.getEntitiesOfType(StandardEntityURN.CIVILIAN)) {
-					result
-							.put(entity.getID(), new EntityExtension(
-									entityColor));
-				}
-			}
-			// ATの色を反映
-			entityColor = controller.getAmbulanceTeamColor();
-			if (entityColor != null) {
-				for (StandardEntity entity : world
-						.getEntitiesOfType(StandardEntityURN.AMBULANCE_TEAM)) {
-					result
-							.put(entity.getID(), new EntityExtension(
-									entityColor));
-				}
-			}
-			// FBの色を反映
-			entityColor = controller.getFireBrigadeColor();
-			if (entityColor != null) {
-				for (StandardEntity entity : world
-						.getEntitiesOfType(StandardEntityURN.FIRE_BRIGADE)) {
-					result
-							.put(entity.getID(), new EntityExtension(
-									entityColor));
-				}
-			}
-			// PFの色を反映
-			entityColor = controller.getPoliceForceColor();
-			if (entityColor != null) {
-				for (StandardEntity entity : world
-						.getEntitiesOfType(StandardEntityURN.POLICE_FORCE)) {
-					result
-							.put(entity.getID(), new EntityExtension(
-									entityColor));
-				}
-			}
-
+	
 			// 指定色で上書き
-			Map<EntityID, EntityExtension> overwriteExtension = createOverwriteExtension(
-					controller.getCivilianColor(), StandardEntityURN.CIVILIAN);
-			result.putAll(overwriteExtension);
-			overwriteExtension = createOverwriteExtension(controller
-					.getAmbulanceTeamColor(), StandardEntityURN.AMBULANCE_TEAM);
-			result.putAll(overwriteExtension);
-			overwriteExtension = createOverwriteExtension(controller
-					.getFireBrigadeColor(), StandardEntityURN.FIRE_BRIGADE);
-			result.putAll(overwriteExtension);
-			overwriteExtension = createOverwriteExtension(controller
-					.getPoliceForceColor(), StandardEntityURN.POLICE_FORCE);
-			result.putAll(overwriteExtension);
-
+			Color c;
+			if ((c = controller.getCivilianColor()) != null) {
+				result.putExtensionToAll(world.getEntitiesOfType(StandardEntityURN.CIVILIAN),
+						new FillExtension(c));
+			}
+			if ((c = controller.getAmbulanceTeamColor()) != null) {
+				result.putExtensionToAll(world.getEntitiesOfType(StandardEntityURN.AMBULANCE_TEAM),
+						new FillExtension(c));
+			}
+			if ((c = controller.getFireBrigadeColor()) != null) {
+				result.putExtensionToAll(world.getEntitiesOfType(StandardEntityURN.FIRE_BRIGADE),
+						new FillExtension(c));
+			}
+			if ((c = controller.getPoliceForceColor()) != null) {
+				result.putExtensionToAll(world.getEntitiesOfType(StandardEntityURN.POLICE_FORCE),
+						new FillExtension(c));
+			}
+			
 			// 独自の効果を反映
 			if (controller.costomExtention()) {
 				try {
-					result.putAll(agent.customExtension());
-				} catch (NullPointerException e) {
-					// nullが返ってきた場合
+					Map<EntityID, EntityExtension> custom = agent.customExtension();
+					if (custom != null) {
+						result.putAll(custom);
+					}
+				}
+				catch(Throwable e) {
+					// customExtension内の例外対策
+					e.printStackTrace();
 				}
 			}
-		} catch (NullPointerException e) {
-			// エージェントでない場合はこっちに来る
-		} finally {
-			// フォーカス
-			EntityID forcus = controller.getFocus();
-			if (forcus != null) {
-				result.put(forcus, new EntityExtension(Color.YELLOW,
-						new BasicStroke(2.0f)));
-			}
+		}
+		// フォーカス
+		EntityID forcus = controller.getFocus();
+		if (forcus != null) {
+			result.put(forcus, new BorderExtension(Color.YELLOW, 2.0f));
 		}
 		return result;
 	}
-
-	/**
-	 * 上書き装飾マップを生成
-	 * 
-	 * @param c
-	 * @param urn
-	 * @return
-	 */
-	private Map<EntityID, EntityExtension> createOverwriteExtension(Color c,
-			StandardEntityURN urn) {
-		Map<EntityID, EntityExtension> result = new HashMap<EntityID, EntityExtension>();
-		if (c != null) {
-			EntityExtension ex = new EntityExtension(c, true);
-			for (StandardEntity se : world.getEntitiesOfType(urn)) {
-				result.put(se.getID(), ex);
-			}
-		}
-		return result;
-	}
-
-	// /**
-	// * Do whatever needs doing after the layers are painted.
-	// */
-	// protected void postpaint() {}
 
 	/**
 	 * デバッグ用のエージェントを追加<br>

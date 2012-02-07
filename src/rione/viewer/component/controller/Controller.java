@@ -47,6 +47,8 @@ public interface Controller {
 	boolean plotLocation();
 	/** 追従 */
 	boolean followFocus();
+	/** 終了するか */
+	boolean killAgents();
 	/**
 	 * 保存するフォルダ
 	 * @return 保存しないならnull

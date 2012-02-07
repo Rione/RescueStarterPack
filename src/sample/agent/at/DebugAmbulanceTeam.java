@@ -3,7 +3,6 @@ package sample.agent.at;
 import java.awt.Graphics2D;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import rescuecore2.messages.Command;
@@ -13,7 +12,7 @@ import rescuecore2.worldmodel.ChangeSet;
 import rescuecore2.worldmodel.EntityID;
 import rione.agent.DebugAgent;
 import rione.viewer.component.AdvancedViewComponent;
-import rione.viewer.component.EntityExtension;
+import rione.viewer.component.extension.ExtensionMap;
 
 public class DebugAmbulanceTeam extends SampleAmbulanceTeam implements DebugAgent {
 
@@ -44,7 +43,7 @@ public class DebugAmbulanceTeam extends SampleAmbulanceTeam implements DebugAgen
 	}
 
 	@Override
-	public Set<EntityID> getVisibleEntity() {
+	public Set<EntityID> getVisibleEntities() {
 		if (changed != null) {
 			return changed.getChangedEntities();
 		}
@@ -52,7 +51,7 @@ public class DebugAmbulanceTeam extends SampleAmbulanceTeam implements DebugAgen
 	}
 
 	@Override
-	public Map<EntityID, EntityExtension> customExtension() {
+	public ExtensionMap customExtension() {
 		// TODO Map<EntityID, EntityExtension> を生成してください
 		return null;
 	}

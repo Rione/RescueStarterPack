@@ -53,7 +53,7 @@ public class AdvancedViewer extends Viewer {
 	 * ログ内のPython変数名<br>
 	 * List<Map<Object, Map<Object, Object>>>みたいなかんじになってる
 	 */
-	public final static String var = "logDics"; 
+	public final static String var = "logDics";
 	
 	/**
 	 * 何サイクルごとに分けるか
@@ -98,6 +98,11 @@ public class AdvancedViewer extends Viewer {
 			// 独自のログを保存
 			if (viewer.controller.saveLog()) {
 				saveViewerLog(viewer.controller.getSaveFolderName(), time);
+			}
+			
+			// 終了
+			if (viewer.controller.killAgents() && time >= timestep) {
+				System.exit(0);
 			}
 		}
 	}

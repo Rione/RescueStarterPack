@@ -69,6 +69,7 @@ public class PanelController extends JFrame implements Controller {
 	private static JCheckBox saveImageCheckBox = null;
 	private static JCheckBox saveLogCheckBox = null;
 	private static JCheckBox followFocusCheckBox = null;
+	private static JCheckBox killAgentsCheckBox = null;
 	private static ColorBox civilianColorBox = null;
 	private static ColorBox atColorBox = null;
 	private static ColorBox fbColorBox = null;
@@ -86,6 +87,7 @@ public class PanelController extends JFrame implements Controller {
 	public PanelController(Controller c) {
 		this(c.getViewComponent());
 		setFocus(c.getFocus());
+		//TODO コントロール追加時に要変更
 		visibleEntityCheckBox.setSelected(c.visibleEntity());
 		customExtensionCheckBox.setSelected(c.costomExtention());
 		customRenderCheckBox.setSelected(c.customRender());
@@ -94,6 +96,8 @@ public class PanelController extends JFrame implements Controller {
 		plotLocationCheckBox.setSelected(c.plotLocation());
 		saveImageCheckBox.setSelected(c.saveImage());
 		saveLogCheckBox.setSelected(c.saveLog());
+		followFocusCheckBox.setSelected(c.followFocus());
+		killAgentsCheckBox.setSelected(c.killAgents());
 		civilianColorBox.setColorValue(c.getCivilianColor());
 		atColorBox.setColorValue(c.getAmbulanceTeamColor());
 		fbColorBox.setColorValue(c.getFireBrigadeColor());
@@ -233,6 +237,11 @@ public class PanelController extends JFrame implements Controller {
 		followFocusCheckBox = new JCheckBox("FollowFocus", false);
 		followFocusCheckBox.setSize(width, 40);
 		boxList.add(followFocusCheckBox);
+		
+		// 追従させるか
+		killAgentsCheckBox = new JCheckBox("KillAgents", false);
+		killAgentsCheckBox.setSize(width, 40);
+		boxList.add(killAgentsCheckBox);
 
 		// 市民色
 		civilianColorBox = new ColorBox("Civilian");
@@ -465,9 +474,15 @@ public class PanelController extends JFrame implements Controller {
 			// 無限ループになるので一旦外す
 			entitiesComboBox.removeItemListener(this);
 			try {
-				if (id == null) entitiesComboBox.setSelectedIndex(0);
-				else entitiesComboBox.setSelectedIndex(idToIndex.get(id));
-			}
+				if (id == null) {
+					entitiesComboBox.setSelectedIndex(0);
+				}
+				else if (idToIndex != null) {
+					Integer i = idToIndex.get(id);
+					if (i == null) i = 0;
+					entitiesComboBox.setSelectedIndex(i);
+				}
+			} 
 			catch (IllegalArgumentException e){
 			}
 			entitiesComboBox.addItemListener(this);
@@ -653,5 +668,10 @@ public class PanelController extends JFrame implements Controller {
 	@Override
 	public Dimension getFrameSize() {
 		return null;
+	}
+
+	@Override
+	public boolean killAgents() {
+		return killAgentsCheckBox.isSelected();
 	}
 }

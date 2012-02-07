@@ -1,4 +1,4 @@
-package rione.viewer;
+package rione.viewer.component;
 
 import java.awt.BasicStroke;
 import java.awt.Color;

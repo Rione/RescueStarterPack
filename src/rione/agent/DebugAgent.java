@@ -1,13 +1,12 @@
 package rione.agent;
 
 import java.awt.Graphics2D;
-import java.util.Map;
 import java.util.Set;
 
 import rescuecore2.misc.gui.ScreenTransform;
 import rescuecore2.standard.entities.StandardWorldModel;
 import rescuecore2.worldmodel.EntityID;
-import rione.viewer.component.EntityExtension;
+import rione.viewer.component.extension.ExtensionMap;
 
 
 /**
@@ -25,10 +24,10 @@ public interface DebugAgent {
 	EntityID getID();
 
 	/** 視界内のEntityID */
-	Set<EntityID> getVisibleEntity();
+	Set<EntityID> getVisibleEntities();
 
 	/** 自由に設定できるExtensionマップ */
-	Map<EntityID, EntityExtension> customExtension();
+	ExtensionMap customExtension();
 	
 	void customRender(Graphics2D g, ScreenTransform t, int width, int height);
 

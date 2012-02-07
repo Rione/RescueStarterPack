@@ -93,6 +93,7 @@ public class ScriptController implements Controller {
 	private boolean saveImage = false;
 	private boolean saveLog = false;
 	private boolean followFocus = false;
+	private boolean killAgents = false;
 	private Color cvColor;
 	private Color atColor;
 	private Color fbColor;
@@ -121,6 +122,8 @@ public class ScriptController implements Controller {
 	private static final String varFrameWidth = "width";
 	private static final String varFrameHigh = "high";
 
+	private static final String DEFAULT_SCRIPT_FILE_NAME = "resq.js";
+
 	/**
 	 * Controllerを引き継いでコンストラクト
 	 * 
@@ -139,6 +142,7 @@ public class ScriptController implements Controller {
 	public ScriptController(Controller c, File newScript) {
 		this(c.getViewComponent(), newScript);
 		// コントローラを引き継ぐ
+		//TODO コントロール追加時に要変更
 		setFocus(c.getFocus());
 		visibleEntity = c.visibleEntity();
 		customExtension = c.costomExtention();
@@ -153,6 +157,67 @@ public class ScriptController implements Controller {
 		atColor = c.getAmbulanceTeamColor();
 		fbColor = c.getFireBrigadeColor();
 		pfColor = c.getPoliceForceColor();
+	}
+	
+	public static void createSettingScript(final Controller c) {
+		//TODO コントロール追加時に要変更
+		final String[] funcNames = new String[] {
+			funcFocus,
+			funcVisible,
+			funcExtension,
+			funcRender,
+			funcCommand,
+			funcPlot,
+			funcSaveFolder,
+			funcSaveImg,
+			funcSaveLog,
+			funcFollowFocus,
+			funcCvColor,
+			funcAtColor,
+			funcFbColor,
+			funcPfColor,
+			funcUpdate,
+		};
+		final EntityID focusedID = c.getFocus();
+		final Object[] values = new Object[] {
+			(focusedID != null) ? focusedID.getValue() : null,
+			c.visibleEntity(),
+			c.costomExtention(),
+			c.customRender(),
+			c.lastCommand(),
+			c.plotLocation(),
+			c.getSaveFolderName(),
+			c.saveImage(),
+			c.saveLog(),
+			c.followFocus(),
+			toHex(c.getCivilianColor()),
+			toHex(c.getAmbulanceTeamColor()),
+			toHex(c.getFireBrigadeColor()),
+			toHex(c.getPoliceForceColor()),
+			"'newPanel'",
+		};
+		final int n = funcNames.length;
+		final File file = createScriptFile();
+		System.out.println(file);
+		if (file == null) return;
+		try {
+			PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));
+			for (int i = 0; i < n; i++) {
+				if (values[i] == null) continue;
+				if (values[i] instanceof Boolean && !((Boolean) values[i])) continue;
+				pw.printf("function %s(t) {return %s;}", funcNames[i], values[i]);
+				pw.println();
+				System.out.printf("function %s(t) {return %s;}", funcNames[i], values[i]);
+				System.out.println();
+			}
+			pw.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	private static String toHex(Color c) {
+		if (c == null) return null;
+		return String.format("%06x", c.getRGB());
 	}
 
 	/**
@@ -219,6 +284,7 @@ public class ScriptController implements Controller {
 		}
 
 		// アクセスのためのインタフェースだけを保持
+		// アップキャストとダウンキャストを同時に行うかなり危険なキャスト
 		inv = (Invocable) engine;
 	}
 
@@ -240,7 +306,7 @@ public class ScriptController implements Controller {
 			}
 			
 			if (rcrsdir != null) {
-				defaultScript = new File(rcrsdir, "resq.js");
+				defaultScript = new File(rcrsdir, DEFAULT_SCRIPT_FILE_NAME);
 			}
 		}
 		catch (SecurityException e) {
@@ -717,63 +783,8 @@ public class ScriptController implements Controller {
 		return plotLocation;
 	}
 
-	public static void createSettingScript(final Controller c) {
-		final String[] funcNames = new String[] {
-			funcFocus,
-			funcVisible,
-			funcExtension,
-			funcRender,
-			funcCommand,
-			funcPlot,
-			funcSaveFolder,
-			funcSaveImg,
-			funcSaveLog,
-			funcFollowFocus,
-			funcCvColor,
-			funcAtColor,
-			funcFbColor,
-			funcPfColor,
-			funcUpdate,
-		};
-		final EntityID focusedID = c.getFocus();
-		final Object[] values = new Object[] {
-			(focusedID != null) ? focusedID.getValue() : null,
-			c.visibleEntity(),
-			c.costomExtention(),
-			c.customRender(),
-			c.lastCommand(),
-			c.plotLocation(),
-			c.getSaveFolderName(),
-			c.saveImage(),
-			c.saveLog(),
-			c.followFocus(),
-			toHex(c.getCivilianColor()),
-			toHex(c.getAmbulanceTeamColor()),
-			toHex(c.getFireBrigadeColor()),
-			toHex(c.getPoliceForceColor()),
-			"'newPanel'",
-		};
-		final int n = funcNames.length;
-		final File file = createScriptFile();
-		System.out.println(file);
-		if (file == null) return;
-		try {
-			PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));
-			for (int i = 0; i < n; i++) {
-				if (values[i] == null) continue;
-				if (values[i] instanceof Boolean && !((Boolean) values[i])) continue;
-				pw.printf("function %s(t) {return %s;}", funcNames[i], values[i]);
-				pw.println();
-				System.out.printf("function %s(t) {return %s;}", funcNames[i], values[i]);
-				System.out.println();
-			}
-			pw.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-	private static String toHex(Color c) {
-		if (c == null) return null;
-		return String.format("%06x", c.getRGB());
+	@Override
+	public boolean killAgents() {
+		return killAgents;
 	}
 }
