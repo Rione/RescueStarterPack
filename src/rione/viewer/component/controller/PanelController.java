@@ -32,6 +32,7 @@ import javax.swing.ScrollPaneConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import rescuecore2.misc.EntityTools;
 import rescuecore2.standard.entities.StandardEntity;
 import rescuecore2.standard.entities.StandardEntityURN;
 import rescuecore2.worldmodel.EntityID;
@@ -451,7 +452,7 @@ public class PanelController extends JFrame implements Controller {
 			strToID = new HashMap<String, EntityID>(c.size());
 			idToIndex = new HashMap<EntityID, Integer>(c.size());
 			List<StandardEntity> entitiesList = new ArrayList<StandardEntity>(c);
-			Collections.sort(entitiesList, new sample.util.IdSorter());
+			Collections.sort(entitiesList, new EntityTools.IDComparator());
 			entitiesComboBox.addItem("Null");
 			int i = 1;
 			for (StandardEntity se : entitiesList) {
