@@ -30,8 +30,8 @@ Install and Compile:
 			(rescue server, example: rescue-1.0a-2011)
 	Set environment variable.
 		RCRS_HOME=(rescue folder)
-	$ cd (rescue server)/boot/config
-	Edit kernel-inline.cfg and comment out(use '#') lines inserting sample agents.
+	Edit (rescue server)/boot/config/kernel-inline.cfg
+	 	Comment out　lines inserting sample agents.
 	$ cd (rescue server)
 		$ ant start-kernel
 	Open another console.
@@ -54,8 +54,9 @@ What should I do?
 		Team Description Paper in RoboCup World Competition
 			It is held every year.
 		joining community in your country
-			SimJP(http://rc-oz.sourceforge.jp/pukiwiki/)で情報を得ることができます．
-			毎年JapanOpenや秋キャンプも開催されるので，ぜひ参加しましょう！
+			SimJPで情報を得ることができます．
+				http://rc-oz.sourceforge.jp/pukiwiki/
+			毎年JapanOpenや秋キャンプも開催されるのでぜひ参加しましょう！
 
 ==============================
 Ritsumeikan University Project Group
