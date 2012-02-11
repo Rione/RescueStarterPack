@@ -26,10 +26,16 @@ public interface DebugAgent {
 	/** 視界内のEntityID */
 	Set<EntityID> getVisibleEntities();
 
-	/** 自由に設定できるExtensionマップ */
+	/** 自由に装飾を設定できるExtensionマップを返す */
 	ExtensionMap customExtension();
 	
+	/** 自由に描画を行う */
 	void customRender(Graphics2D g, ScreenTransform t, int width, int height);
 
+	/**
+	 * メソッド呼び出しの文字列を返す．<br>
+	 * コマンドの送信に関わるメソッドをオーバーライドすることにより，StringBuilderに文字列を追加し，
+	 * その結果を返してください．
+	 */
 	String getCommandsCall();
 }
