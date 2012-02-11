@@ -9,21 +9,18 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
+import java.util.Map.Entry;
+
 import javax.imageio.ImageIO;
 
 import rescuecore2.Timestep;
 import rescuecore2.score.ScoreFunction;
-import rescuecore2.standard.entities.AmbulanceTeam;
 import rescuecore2.standard.entities.Area;
 import rescuecore2.standard.entities.Blockade;
 import rescuecore2.standard.entities.Building;
-import rescuecore2.standard.entities.Civilian;
 import rescuecore2.standard.entities.FireBrigade;
 import rescuecore2.standard.entities.Human;
-import rescuecore2.standard.entities.PoliceForce;
-import rescuecore2.standard.entities.Refuge;
 import rescuecore2.standard.entities.Road;
-import rescuecore2.standard.entities.StandardEntity;
 import rescuecore2.standard.entities.StandardWorldModel;
 import rescuecore2.worldmodel.EntityID;
 import rione.agent.DebugAgent;
@@ -46,19 +43,11 @@ public class AdvancedViewer extends Viewer {
 	protected StandardWorldModel world = null;
 	private static StandardWorldModel  staticModel = null;
 	
-	/** ログを出力するファイル */
-	File logFile = null;
-	
 	/**
 	 * ログ内のPython変数名<br>
-	 * List<Map<Object, Map<Object, Object>>>みたいなかんじになってる
+	 * List&gt;Map&gt;Object, Map&gt;Object, Object&lt;&lt;&lt;みたいなかんじになってる
 	 */
 	public final static String var = "logDics";
-	
-	/**
-	 * 何サイクルごとに分けるか
-	 */
-	public final static int logParticle = 10; 
 
 	/*
 	 * 初期化時に呼ばれる
@@ -139,7 +128,8 @@ public class AdvancedViewer extends Viewer {
 	
 	/**
 	 * ログを出力する<br>
-	 * ログはPythonで吐出されるため，インタラクティブシェルから自由に参照できる
+	 * ログはPythonで吐出されるため，インタラクティブシェルから自由に参照できる．
+	 * 1サイクルごとにlog(time).pyというファイル名で別ファイルとなる．
 	 * @param folderPath
 	 * @param time
 	 */
@@ -148,225 +138,231 @@ public class AdvancedViewer extends Viewer {
 		// 書き込みを行うストリーム
 		// デストラクタでcloseする
 		PrintStream stream = null;
-		if (logFile == null || time % logParticle == 0) {
+		File logFile = new File(folderPath, "log" + time + ".py");
+		if (!logFile.exists()) {
 			// 初回の書き込み
-			logFile = new File(folderPath, "log" + (time / logParticle) + ".py");
 			stream = getPrintStream(logFile, false);
 			stream.println("#!/usr/bin/env python");
 			stream.println("#-*- coding:utf-8 -*-");
-			stream.printf("%s = [{} for i in range(%d)]\n", var, logParticle);
-		}
-		else {
-			// 追記
-			stream = getPrintStream(logFile, true);
+			stream.println("time = " + time);
 		}
 		if (stream == null) return;
 		
-		// このtimeでのPython変数var[n]
-		String varN = var + "[" + (time % logParticle) + "]";
-		
 		// スコア
-		// Pythonの辞書文字列("Key:Value, ")を追加していく
-		StringBuffer scoreDictionary = new StringBuffer();
+		// Pythonの辞書("Key:Value,")を追加していく
+		stream.println("score = {");
 		for (ScoreFunction f : scoreFunctions) {
 			//Key:スコアの文字列, Value:スコアの実数
-			scoreDictionary.append('\'');
-			scoreDictionary.append(f.getName());
-			scoreDictionary.append("':");
-			scoreDictionary.append(f.score(model, new Timestep(time)));
-			scoreDictionary.append(", ");
+			stream.printf("\t'%s': %f,",
+					f.getName(),
+					f.score(model, new Timestep(time)));
+			stream.println();
 		}
-		stream.printf("%s['score'] = {%s}\n", varN, scoreDictionary.toString());
+		stream.println('}');
 		
-		// このサイクルのEntity
-		for (StandardEntity se : model.getAllEntities()) {
-			// Pythonの辞書文字列("Key:Value, ")を追加していく
-			StringBuffer dictionary = new StringBuffer();
-			
-			try {
-				// Propatyを使ってもいいけど，こっちの方が細かく出力を調整できる気がした
-				// ログとして不必要なものはコメントアウトしたりしている
-				/* コピペ用
-				String
-					dictionary.append("'':'" +  + "', ");
-				int,double
-					dictionary.append("'':" +  + ", ");
-				boolean
-					dictionary.append("'':" + (() ? "True" : "False") + ", ");
-				 */
-				//dictionary.append("'name':'" + se.toString() + "', ");
-				if (se instanceof Human) {
-					Human human = (Human) se;
-					if (human.isHPDefined()) {
-						dictionary.append("'hp':");
-						dictionary.append(human.getHP());
-						dictionary.append(", ");
-					}
-					if (human.isDamageDefined()) {
-						dictionary.append("'damage':");
-						dictionary.append(human.getDamage());
-						dictionary.append(", ");
-					}
-					//if (human.isStaminaDefined())
-					//	dictionary.append("'stamina':" + human.getStamina() + ", ");
-					if (human.isBuriednessDefined()) {
-						dictionary.append("'buriedness':");
-						dictionary.append(human.getBuriedness());
-						dictionary.append(", ");
-					}
-					//if (human.isDirectionDefined())
-					//	dictionary.append("'direction':" + human.getDirection() + ", ");
-					if (human.isPositionDefined()) {
-						dictionary.append("'position':");
-						dictionary.append(human.getPosition().getValue());
-						dictionary.append(", ");
-					}
-					//if (human.isPositionHistoryDefined())
-					if (human.isTravelDistanceDefined()) {
-						dictionary.append("'travelDistance':");
-						dictionary.append(human.getTravelDistance());
-						dictionary.append(", ");
-					}
-					//if (human.isXDefined()) {
-					//	dictionary.append("'x':");
-					//	dictionary.append(human.getX());
-					//	dictionary.append(", ");
-					//}
-					//if (human.isYDefined()) {
-					//	dictionary.append("'y':");
-					//	dictionary.append(human.getY());
-					//	dictionary.append(", ");
-					//}
-
-					if (human instanceof AmbulanceTeam) {
-						dictionary.append("'type':'at', ");
-					}
-					else if (human instanceof FireBrigade) {
-						FireBrigade fb = (FireBrigade) human;
-						dictionary.append("'type':'fb', ");
-						if (fb.isWaterDefined()) {
-							dictionary.append("'water':");
-							dictionary.append(fb.getWater());
-							dictionary.append(", ");
-						}
-					}
-					else if (human instanceof PoliceForce) {
-						dictionary.append("'type':'pf', ");
-					}
-					else if (human instanceof Civilian) {
-						dictionary.append("'type':'civilian', ");
-					}
-					
-					// EntityをAgentに変換
-					DebugAgent dbgAgent = AdvancedViewComponent.AgentList.get(human.getID());
-					if (dbgAgent != null) {
-						StringBuffer methodsList = new StringBuffer();
-						for (String methods : dbgAgent.getCommandsCall().split("->")) {
-							methodsList.append('\'');
-							methodsList.append(methods);
-							methodsList.append("', ");
-						}
-						if (!methodsList.toString().equals("")) {
-							dictionary.append("'methods':[");
-							dictionary.append(methodsList.toString());
-							dictionary.append("], ");
-						}
-						
-//						if (dbgAgent instanceof AmbulanceTeamAgent) {
-//							AmbulanceTeamAgent atAgent = (AmbulanceTeamAgent) dbgAgent;
-//							dictionary.append("'board':[");
-//							dictionary.append(((atAgent.someoneOnBoard()) ? "True" : "False"));
+		//DebugAgent
+		stream.println("agent = {");
+		for (Entry<EntityID, DebugAgent> entry : AdvancedViewComponent.AgentList.entrySet()) {
+			EntityID id = entry.getKey();
+			DebugAgent agent = entry.getValue();
+			stream.printf("\t%d: {", id.getValue());
+			stream.println();
+			stream.printf("\t\t'calls': '%s',", agent.getCommandsCall());
+			stream.println();
+			stream.println("\t},");
+		}
+		stream.println('}');
+		
+		// WorldModelはRescueのサーバによるログから復元できるのでそちらを利用しましょう．
+//		// このサイクルのEntity
+//		for (StandardEntity se : model.getAllEntities()) {
+//			// Pythonの辞書文字列("Key:Value, ")を追加していく
+//			StringBuffer dictionary = new StringBuffer();
+//			
+//			try {
+//				// Propatyを使ってもいいけど，こっちの方が細かく出力を調整できる気がした
+//				// ログとして不必要なものはコメントアウトしたりしている
+//				/* コピペ用
+//				String
+//					dictionary.append("'':'" +  + "', ");
+//				int,double
+//					dictionary.append("'':" +  + ", ");
+//				boolean
+//					dictionary.append("'':" + (() ? "True" : "False") + ", ");
+//				 */
+//				//dictionary.append("'name':'" + se.toString() + "', ");
+//				if (se instanceof Human) {
+//					Human human = (Human) se;
+//					if (human.isHPDefined()) {
+//						dictionary.append("'hp':");
+//						dictionary.append(human.getHP());
+//						dictionary.append(", ");
+//					}
+//					if (human.isDamageDefined()) {
+//						dictionary.append("'damage':");
+//						dictionary.append(human.getDamage());
+//						dictionary.append(", ");
+//					}
+//					//if (human.isStaminaDefined())
+//					//	dictionary.append("'stamina':" + human.getStamina() + ", ");
+//					if (human.isBuriednessDefined()) {
+//						dictionary.append("'buriedness':");
+//						dictionary.append(human.getBuriedness());
+//						dictionary.append(", ");
+//					}
+//					//if (human.isDirectionDefined())
+//					//	dictionary.append("'direction':" + human.getDirection() + ", ");
+//					if (human.isPositionDefined()) {
+//						dictionary.append("'position':");
+//						dictionary.append(human.getPosition().getValue());
+//						dictionary.append(", ");
+//					}
+//					//if (human.isPositionHistoryDefined())
+//					if (human.isTravelDistanceDefined()) {
+//						dictionary.append("'travelDistance':");
+//						dictionary.append(human.getTravelDistance());
+//						dictionary.append(", ");
+//					}
+//					//if (human.isXDefined()) {
+//					//	dictionary.append("'x':");
+//					//	dictionary.append(human.getX());
+//					//	dictionary.append(", ");
+//					//}
+//					//if (human.isYDefined()) {
+//					//	dictionary.append("'y':");
+//					//	dictionary.append(human.getY());
+//					//	dictionary.append(", ");
+//					//}
+//
+//					if (human instanceof AmbulanceTeam) {
+//						dictionary.append("'type':'at', ");
+//					}
+//					else if (human instanceof FireBrigade) {
+//						FireBrigade fb = (FireBrigade) human;
+//						dictionary.append("'type':'fb', ");
+//						if (fb.isWaterDefined()) {
+//							dictionary.append("'water':");
+//							dictionary.append(fb.getWater());
+//							dictionary.append(", ");
+//						}
+//					}
+//					else if (human instanceof PoliceForce) {
+//						dictionary.append("'type':'pf', ");
+//					}
+//					else if (human instanceof Civilian) {
+//						dictionary.append("'type':'civilian', ");
+//					}
+//					
+//					// EntityをAgentに変換
+//					DebugAgent dbgAgent = AdvancedViewComponent.AgentList.get(human.getID());
+//					if (dbgAgent != null) {
+//						StringBuffer methodsList = new StringBuffer();
+//						for (String methods : dbgAgent.getCommandsCall().split("->")) {
+//							methodsList.append('\'');
+//							methodsList.append(methods);
+//							methodsList.append("', ");
+//						}
+//						if (!methodsList.toString().equals("")) {
+//							dictionary.append("'methods':[");
+//							dictionary.append(methodsList.toString());
 //							dictionary.append("], ");
 //						}
-						//else if (dbgAgent instanceof FireBrigadeAgent) {
-						//}
-						//else if (dbgAgent instanceof PoliceForceAgent) {
-						//}
-					}
-
-				} else if (se instanceof Area) {
-					Area area = (Area) se;
-//					if (area.isXDefined())
-//						dictionary.append("'x':" + area.getX() + ", ");
-//					if (area.isYDefined())
-//						dictionary.append("'y':" + area.getY() + ", ");
-//					if (area.isEdgesDefined()) {
-//						StringBuffer edgesList = new StringBuffer();
-//						for (Edge e : area.getEdges()) {
-//							edgesList.append( + ", ");
-//						}
-//						dictionary.append("'edges':[" + edgesList.toString() + "], ");
+//						
+////						if (dbgAgent instanceof AmbulanceTeamAgent) {
+////							AmbulanceTeamAgent atAgent = (AmbulanceTeamAgent) dbgAgent;
+////							dictionary.append("'board':[");
+////							dictionary.append(((atAgent.someoneOnBoard()) ? "True" : "False"));
+////							dictionary.append("], ");
+////						}
+//						//else if (dbgAgent instanceof FireBrigadeAgent) {
+//						//}
+//						//else if (dbgAgent instanceof PoliceForceAgent) {
+//						//}
 //					}
-					//if (area.isBlockadesDefined()) {
-					//	StringBuffer blockadesList = new StringBuffer();
-					//	for (EntityID b : area.getBlockades()) {
-					//		blockadesList.append(b.getValue() + ", ");
-					//	}
-					//	if (!blockadesList.toString().equals(""))
-					//		dictionary.append("'blockades':[" + blockadesList.toString() + "], ");
-					//}
-					
-					if (area instanceof Building) {
-						Building building = (Building) se;
-						if (building.isBrokennessDefined()) {
-							dictionary.append("'brokenness':");
-							dictionary.append(building.getBrokenness());
-							dictionary.append(", ");
-						}
-						if (building.isIgnitionDefined()) {
-							dictionary.append("'ignition':");
-							dictionary.append(((building.getIgnition()) ? "True" : "False"));
-							dictionary.append(", ");
-						}
-						if (building.isOnFire()) {
-							dictionary.append("'onFire':");
-							dictionary.append(((building.isOnFire()) ? "True" : "False"));
-							dictionary.append(", ");
-						}
-						if (building.isTemperatureDefined()) {
-							dictionary.append("'temperarure':");
-							dictionary.append(building.getTemperature());
-							dictionary.append(", ");
-						}
-						
-						if (area instanceof Refuge) {
-//							Refuge refuge = (Refuge) se;
-							dictionary.append("'type':'refuge', ");
-						}
-						else {
-							dictionary.append("'type':'building', ");							
-						}
-					}
-					else if (area instanceof Road) {
-//						Road road = (Road) obj;
-						dictionary.append("'type':'road', ");
-					}
-				}
-				else if (se instanceof Blockade) {
-					Blockade blockade = (Blockade) se;
-					dictionary.append("'type':'blockade', ");
-					if (blockade.isRepairCostDefined()) {
-						dictionary.append("'repairCost':");
-						dictionary.append(blockade.getRepairCost());
-						dictionary.append(", ");
-					}
-				}
-
-			} catch (ClassCastException e) {
-				e.printStackTrace();
-			}
-			
-			// 1行に書き込む
-			if (!dictionary.toString().equals(""))
-				stream.printf("%s[%d] = {%s}\n", varN, se.getID().getValue(), dictionary.toString());
-		}
+//
+//				} else if (se instanceof Area) {
+//					Area area = (Area) se;
+////					if (area.isXDefined())
+////						dictionary.append("'x':" + area.getX() + ", ");
+////					if (area.isYDefined())
+////						dictionary.append("'y':" + area.getY() + ", ");
+////					if (area.isEdgesDefined()) {
+////						StringBuffer edgesList = new StringBuffer();
+////						for (Edge e : area.getEdges()) {
+////							edgesList.append( + ", ");
+////						}
+////						dictionary.append("'edges':[" + edgesList.toString() + "], ");
+////					}
+//					//if (area.isBlockadesDefined()) {
+//					//	StringBuffer blockadesList = new StringBuffer();
+//					//	for (EntityID b : area.getBlockades()) {
+//					//		blockadesList.append(b.getValue() + ", ");
+//					//	}
+//					//	if (!blockadesList.toString().equals(""))
+//					//		dictionary.append("'blockades':[" + blockadesList.toString() + "], ");
+//					//}
+//					
+//					if (area instanceof Building) {
+//						Building building = (Building) se;
+//						if (building.isBrokennessDefined()) {
+//							dictionary.append("'brokenness':");
+//							dictionary.append(building.getBrokenness());
+//							dictionary.append(", ");
+//						}
+//						if (building.isIgnitionDefined()) {
+//							dictionary.append("'ignition':");
+//							dictionary.append(((building.getIgnition()) ? "True" : "False"));
+//							dictionary.append(", ");
+//						}
+//						if (building.isOnFire()) {
+//							dictionary.append("'onFire':");
+//							dictionary.append(((building.isOnFire()) ? "True" : "False"));
+//							dictionary.append(", ");
+//						}
+//						if (building.isTemperatureDefined()) {
+//							dictionary.append("'temperarure':");
+//							dictionary.append(building.getTemperature());
+//							dictionary.append(", ");
+//						}
+//						
+//						if (area instanceof Refuge) {
+////							Refuge refuge = (Refuge) se;
+//							dictionary.append("'type':'refuge', ");
+//						}
+//						else {
+//							dictionary.append("'type':'building', ");							
+//						}
+//					}
+//					else if (area instanceof Road) {
+////						Road road = (Road) obj;
+//						dictionary.append("'type':'road', ");
+//					}
+//				}
+//				else if (se instanceof Blockade) {
+//					Blockade blockade = (Blockade) se;
+//					dictionary.append("'type':'blockade', ");
+//					if (blockade.isRepairCostDefined()) {
+//						dictionary.append("'repairCost':");
+//						dictionary.append(blockade.getRepairCost());
+//						dictionary.append(", ");
+//					}
+//				}
+//
+//			} catch (ClassCastException e) {
+//				e.printStackTrace();
+//			}
+//			
+//			// 1行に書き込む
+//			if (!dictionary.toString().equals(""))
+//				stream.printf("%s[%d] = {%s}\n", varN, se.getID().getValue(), dictionary.toString());
+//		}
 	}
 	
 	/**
 	 * ログを出力するファイルのストリームを取得する
 	 * @param file
 	 * @param append
-	 * @return
+	 * @return ログの出力先
 	 */
 	protected PrintStream getPrintStream(File file, boolean append) {
 		PrintStream stream = null;
@@ -394,7 +390,7 @@ public class AdvancedViewer extends Viewer {
 	 * オブジェクトの詳細な文字列表現を生成<br>
 	 * 接続前に利用するとぬるぽの恐れがあります
 	 * @param obj
-	 * @return
+	 * @return そのエンティティについての詳細な文字列
 	 */
 	public static String createDetailString(Object obj) {
 		StringBuffer result = new StringBuffer();
@@ -501,7 +497,7 @@ public class AdvancedViewer extends Viewer {
 	/**
 	 * 詳細な文字列を取得する
 	 * @param id
-	 * @return
+	 * @return そのエンティティについての詳細な文字列
 	 */
 	public static String createDetailString(EntityID id) {
 		return createDetailString(staticModel.getEntity(id));

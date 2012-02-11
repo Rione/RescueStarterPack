@@ -23,7 +23,6 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 import java.text.NumberFormat;
 
@@ -65,12 +64,11 @@ public abstract class Viewer extends StandardViewer {
 	//private static final String TEAM_NAME_KEY = "viewer.team-name";
 
 	/** スコア関数 */
-	protected List<ScoreFunction> scoreFunctions = new ArrayList<ScoreFunction>();
+	protected ScoreFunction[] scoreFunctions;
 	
 	/** タイムステップ数 */
 	public static int timestep;
 
-	/* 愉快なGUI部品(JComponent)達 */
 	/** 世界を表示するビューコンポーネント */
 	protected AdvancedViewComponent viewer = null;
 	/** 時間を表示するラベル */
@@ -83,18 +81,18 @@ public abstract class Viewer extends StandardViewer {
 	/** 数値->文字列のフォーマット(主にスコアで使う) */
 	protected NumberFormat format;
 	public static final StandardEntityURN[] INDEX_CLASS = new StandardEntityURN[] {
-		StandardEntityURN.AMBULANCE_TEAM,
-		StandardEntityURN.FIRE_BRIGADE,
-		StandardEntityURN.POLICE_FORCE,
-		StandardEntityURN.BUILDING,
 		StandardEntityURN.AMBULANCE_CENTRE,
-		StandardEntityURN.FIRE_STATION,
-		StandardEntityURN.POLICE_OFFICE,
-		StandardEntityURN.ROAD,
-		StandardEntityURN.REFUGE,
-		StandardEntityURN.BUILDING,
+		StandardEntityURN.AMBULANCE_TEAM,
 		StandardEntityURN.BLOCKADE,
-		StandardEntityURN.CIVILIAN
+		StandardEntityURN.BUILDING,
+		StandardEntityURN.CIVILIAN,
+		StandardEntityURN.FIRE_BRIGADE,
+		StandardEntityURN.FIRE_STATION,
+		StandardEntityURN.POLICE_FORCE,
+		StandardEntityURN.POLICE_OFFICE,
+		StandardEntityURN.REFUGE,
+		StandardEntityURN.ROAD,
+		StandardEntityURN.WORLD
 	};
 
 	/**
@@ -127,7 +125,7 @@ public abstract class Viewer extends StandardViewer {
 		String teamName = "Ri-one";// config.getValue(TEAM_NAME_KEY, "");
 		JFrame frame = new JFrame("Viewer " + getViewerID() + " ("
 				+ model.getAllEntities().size() + " entities)");
-		viewer = new AdvancedViewComponent(model);
+		viewer = new AdvancedViewComponent();
 		viewer.initialise(config);
 		viewer.view(model);
 		// CHECKSTYLE:OFF:MagicNumber
@@ -139,7 +137,6 @@ public abstract class Viewer extends StandardViewer {
 		else {
 			viewer.setPreferredSize(d);
 		}
-		// CHECKSTYLE:ON:MagicNumber
 		timeLabel = new JLabel("Time: Not started", SwingConstants.CENTER);
 		teamLabel = new JLabel(teamName, SwingConstants.CENTER);
 		scoreLabel = new JLabel("Score: Unknown", SwingConstants.CENTER);
@@ -156,9 +153,7 @@ public abstract class Viewer extends StandardViewer {
 		scoreLabel.setFont(timeLabel.getFont().deriveFont(Font.PLAIN,
 				fontSize));
 		frame.add(viewer, BorderLayout.CENTER);
-		// CHECKSTYLE:OFF:MagicNumber
 		JPanel labels = new JPanel(new GridLayout(1, 3));
-		// CHECKSTYLE:ON:MagicNumber
 		labels.add(teamLabel);
 		labels.add(timeLabel);
 		labels.add(scoreLabel);
@@ -181,30 +176,31 @@ public abstract class Viewer extends StandardViewer {
 	 */
 	@Override
 	protected void handleTimestep(final KVTimestep t) {
-		super.handleTimestep(t);
-		if (GUI_FLAG) {
-			//非同期で更新させる
-			SwingUtilities.invokeLater(new Runnable() {
-				@Override
-				public void run() {
-					timeLabel.setText("Time: " + t.getTime());
-					scoreLabel.setText("Score: " + format.format(scoreFunctions.get(0).score(model, new Timestep(t.getTime()))));
-					viewer.viewRepaint(model, t.getCommands());
-				}
-			});
+		try {
+			super.handleTimestep(t);
+			if (GUI_FLAG) {
+				//非同期で更新させる
+				SwingUtilities.invokeLater(new Runnable() {
+					@Override
+					public void run() {
+						timeLabel.setText("Time: " + t.getTime());
+						scoreLabel.setText("Score: " + format.format(scoreFunctions[0].score(model, new Timestep(t.getTime()))));
+						viewer.viewRepaint(model, t.getCommands());
+					}
+				});
+			}
+			update(t.getTime());
+			
+			viewer.repaint();
 		}
-		update(t.getTime());
-		
-		// 終了
-		if (t.getTime() >= timestep) {
-			System.exit(0);
+		catch(Throwable e) {
+			e.printStackTrace();
 		}
-		viewer.repaint();
 	}
 
 	/**
 	 * 毎サイクルに1回呼ばれる
-	 * @param t
+	 * @param time
 	 */
 	protected abstract void update(final int time);
 
@@ -220,16 +216,18 @@ public abstract class Viewer extends StandardViewer {
 	 */
 	private void makeScoreFunctions() {
 		String className = config.getValue(Constants.SCORE_FUNCTION_KEY);
-		ScoreFunction result = instantiate(className, ScoreFunction.class);
-		result.initialise(model, config);
-		makeScoreFunctions(result);
+		ScoreFunction sf = instantiate(className, ScoreFunction.class);
+		sf.initialise(model, config);
+		ArrayList<ScoreFunction> scoreFuncs = new ArrayList<ScoreFunction>();
+		makeScoreFunctions(scoreFuncs, sf);
+		scoreFunctions = scoreFuncs.toArray(new ScoreFunction[]{});
 	}
-	private void makeScoreFunctions(ScoreFunction root) {
-		scoreFunctions.add(root);
-		if (root instanceof CompositeScoreFunction) {
-            Set<ScoreFunction> children = ((CompositeScoreFunction)root).getChildFunctions();
+	private void makeScoreFunctions(ArrayList<ScoreFunction> scoreFuncs, ScoreFunction sf) {
+		scoreFuncs.add(sf);
+		if (sf instanceof CompositeScoreFunction) {
+            Set<ScoreFunction> children = ((CompositeScoreFunction)sf).getChildFunctions();
             for (ScoreFunction next : children) {
-                makeScoreFunctions(next);
+                makeScoreFunctions(scoreFuncs, next);
             }
         }
 	}

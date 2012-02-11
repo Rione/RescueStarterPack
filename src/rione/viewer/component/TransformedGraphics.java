@@ -28,13 +28,18 @@ public class TransformedGraphics {
 	final private Graphics2D g;
 	final private ScreenTransform t;
 
+	/**
+	 * tにより変換を行いながら，gに対して描画を行うTransformedGraphicsを生成します．
+	 * @param g 描画対象となるGraphics2D
+	 * @param t 座標変換を行うScreenTransform
+	 */
 	public TransformedGraphics(Graphics2D g, ScreenTransform t) {
 		this.g = g;
 		this.t = t;
 	}
 
 	/**
-	 * x, y, w, hを変換して描画します．
+	 * x, y, w, hを変換して矩形を描画します．
 	 * 
 	 * @param x
 	 * @param y
@@ -68,6 +73,22 @@ public class TransformedGraphics {
 	 */
 	public void draw(Shape s) {
 		g.draw(transform(s));
+	}
+	
+	/**
+	 * x, y, w, hを変換し，円弧または楕円弧を塗りつぶします．<br>
+	 * 角度は右向き水平方向を0度，右上隅を45度とします．
+	 * @param x
+	 * @param y
+	 * @param width
+	 * @param height
+	 * @param startAngle 開始角度
+	 * @param arcAngle 展開角度
+	 */
+	public void drawArc(int x, int y, int width, int height, int startAngle,
+			int arcAngle) {
+		g.drawArc(t.xToScreen(x), t.yToScreen(y), t.xToScreen(width),
+				t.yToScreen(height), startAngle, arcAngle);
 	}
 
 	/**
@@ -151,55 +172,126 @@ public class TransformedGraphics {
 				t.yToScreen(height), arcWidth, arcHeight);
 	}
 
+	/**
+	 * x, yを変換し，AttributedCharacterIteratorを描画します．
+	 * @param iterator
+	 * @param x
+	 * @param y
+	 */
 	public void drawString(AttributedCharacterIterator iterator, float x,
 			float y) {
 		g.drawString(iterator, t.xToScreen(x), t.yToScreen(y));
 	}
 
+	/**
+	 * x, yを変換し，AttributedCharacterIteratorを描画します．
+	 * @param iterator
+	 * @param x
+	 * @param y
+	 */
 	public void drawString(AttributedCharacterIterator iterator, int x, int y) {
 		g.drawString(iterator, t.xToScreen(x), t.yToScreen(y));
 	}
 
+	/**
+	 * x, yを変換し，Stringを描画します．
+	 * @param str
+	 * @param x
+	 * @param y
+	 */
 	public void drawString(String str, float x, float y) {
 		g.drawString(str, t.xToScreen(x), t.yToScreen(y));
 	}
 
+	/**
+	 * x, yを変換し，Stringを描画します．
+	 * @param str
+	 * @param x
+	 * @param y
+	 */
 	public void drawString(String str, int x, int y) {
 		g.drawString(str, t.xToScreen(x), t.yToScreen(y));
 	}
 
+	/**
+	 * Shapeを変換し描画します．
+	 * @param s
+	 */
 	public void fill(Shape s) {
 		g.fill(transform(s));
 	}
 
+	/**
+	 * x, y, w, hを変換し，円弧または楕円弧を塗りつぶします．
+	 * 角度は右向き水平方向を0度，右上隅を45度とします．
+	 * @param x
+	 * @param y
+	 * @param width
+	 * @param height
+	 * @param startAngle 開始角度
+	 * @param arcAngle 展開角度
+	 */
 	public void fillArc(int x, int y, int width, int height, int startAngle,
 			int arcAngle) {
 		g.fillArc(t.xToScreen(x), t.yToScreen(y), t.xToScreen(width),
 				t.yToScreen(height), startAngle, arcAngle);
 	}
 
+	/**
+	 * x, y, w, hを変換して楕円を塗りつぶします．
+	 * @param x
+	 * @param y
+	 * @param width
+	 * @param height
+	 */
 	public void fillOval(int x, int y, int width, int height) {
 		g.fillOval(t.xToScreen(x), t.yToScreen(y), t.xToScreen(width),
 				t.yToScreen(height));
 	}
 
+	/**
+	 * 
+	 * @param xPoints
+	 * @param yPoints
+	 * @param nPoints
+	 */
 	public void fillPolygon(int[] xPoints, int[] yPoints, int nPoints) {
 		Path2D poly = transformedPolygon(xPoints, yPoints, nPoints);
 		poly.closePath();
 		g.fill(poly);
 	}
 
+	/**
+	 * 
+	 * @param x
+	 * @param y
+	 * @param width
+	 * @param height
+	 */
 	public void fillRect(int x, int y, int width, int height) {
 		g.fillRect(t.xToScreen(x), t.yToScreen(y), t.xToScreen(width),
 				t.yToScreen(height));
 	}
 
+	/**
+	 * 
+	 * @param x
+	 * @param y
+	 * @param width
+	 * @param height
+	 * @param arcWidth
+	 * @param arcHeight
+	 */
 	public void fillRoundRect(int x, int y, int width, int height,
 			int arcWidth, int arcHeight) {
 		g.fillRoundRect(t.xToScreen(x), t.yToScreen(y), t.xToScreen(width),
 				t.yToScreen(height), arcWidth, arcHeight);
 	}
 
+	/**
+	 * g.setColorと同様です．
+	 * @param c
+	 */
 	public void setColor(Color c) {
 		g.setColor(c);
 	}
@@ -276,8 +368,6 @@ public class TransformedGraphics {
 	/**
 	 * 行番号を指定して描画する
 	 * 
-	 * @param g
-	 * @param t
 	 * @param string
 	 * @param x
 	 *            Xのオフセット

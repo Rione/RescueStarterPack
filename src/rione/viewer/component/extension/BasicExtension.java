@@ -6,6 +6,8 @@ import java.awt.Graphics2D;
 import java.awt.Shape;
 import java.awt.Stroke;
 
+import rescuecore2.misc.gui.ScreenTransform;
+
 /**
  * 基本装飾<br>
  * @author utisam
@@ -49,7 +51,7 @@ public class BasicExtension implements EntityExtension {
 	}
 
 	@Override
-	public int render(Graphics2D g, Shape s) {
+	public int render(Graphics2D g, ScreenTransform t,Shape s,int x,int y) {
 		g.setColor(color);
 		g.setStroke(stroke);
 		if (fill) {

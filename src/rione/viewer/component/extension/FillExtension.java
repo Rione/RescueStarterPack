@@ -4,11 +4,18 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Shape;
 
+import rescuecore2.misc.gui.ScreenTransform;
+
+/**
+ * 塗りつぶしを行う装飾
+ * @author utisam
+ *
+ */
 public class FillExtension implements EntityExtension {
 
 	final private EntityExtension base;
 	final private Color color;
-	
+
 	public static final FillExtension BLACK = new FillExtension(Color.BLACK);
 	public static final FillExtension BLUE = new FillExtension(Color.BLUE);
 	public static final FillExtension CYAN = new FillExtension(Color.CYAN);
@@ -26,12 +33,21 @@ public class FillExtension implements EntityExtension {
 	public FillExtension(Color c) {
 		this(null, c);
 	}
-	
+
+	/**
+	 * 塗りつぶします
+	 * @param base baseの効果を描画した後にさらに塗りつぶされます．
+	 * @param c 塗りつぶしの色
+	 */
 	public FillExtension(EntityExtension base, Color c) {
 		this.base = base;
 		this.color = c;
 	}
-	
+
+	/**
+	 * このインスタンスをテンプレートとする生成関数を返します．
+	 * @return このインスタンスをテンプレートとする生成関数．
+	 */
 	public DecoratorFunction decorator() {
 		return new DecoratorFunction() {
 			@Override
@@ -40,12 +56,12 @@ public class FillExtension implements EntityExtension {
 			}
 		};
 	}
-	
+
 	@Override
-	public int render(Graphics2D g, Shape s) {
+	public int render(Graphics2D g, ScreenTransform t, Shape s, int x, int y) {
 		int yOffset = 0;
 		if (base != null) {
-			yOffset = base.render(g, s);
+			yOffset = base.render(g, t, s, x, y);
 		}
 		g.setColor(color);
 		g.fill(s);

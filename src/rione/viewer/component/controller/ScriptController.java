@@ -161,6 +161,10 @@ public class ScriptController implements Controller {
 		pfColor = c.getPoliceForceColor();
 	}
 	
+	/**
+	 * スクリプトを生成し，$RCRS_HOME/resq.jsと標準出力に出力します．
+	 * @param c
+	 */
 	public static void createSettingScript(final Controller c) {
 		//TODO コントロール追加時に要変更
 		final String[] funcNames = new String[] {
@@ -199,7 +203,7 @@ public class ScriptController implements Controller {
 			toHex(c.getAmbulanceTeamColor()),
 			toHex(c.getFireBrigadeColor()),
 			toHex(c.getPoliceForceColor()),
-			"'newPanel'",
+			"newPanel",
 		};
 		final int n = funcNames.length;
 		final File file = createScriptFile();
@@ -210,6 +214,7 @@ public class ScriptController implements Controller {
 			for (int i = 0; i < n; i++) {
 				if (values[i] == null) continue;
 				if (values[i] instanceof Boolean && !((Boolean) values[i])) continue;
+				if (values[i] instanceof String) values[i] = '\'' + (String) values[i] + '\'';
 				pw.printf("function %s(t) {return %s;}", funcNames[i], values[i]);
 				pw.println();
 				System.out.printf("function %s(t) {return %s;}", funcNames[i], values[i]);
@@ -245,7 +250,7 @@ public class ScriptController implements Controller {
 		catch (ScriptException e) {
 			e.printStackTrace();
 		}
-		catch (NullPointerException e) {
+		catch (Exception e) {
 			try {
 				engine.eval("function update(t) {return 'newPanel';}");
 			}

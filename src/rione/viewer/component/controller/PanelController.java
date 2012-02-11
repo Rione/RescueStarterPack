@@ -1,5 +1,6 @@
 package rione.viewer.component.controller;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
@@ -26,7 +27,6 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.event.ChangeEvent;
@@ -36,7 +36,6 @@ import rescuecore2.misc.EntityTools;
 import rescuecore2.standard.entities.StandardEntity;
 import rescuecore2.standard.entities.StandardEntityURN;
 import rescuecore2.worldmodel.EntityID;
-import rione.viewer.AdvancedViewer;
 import rione.viewer.Viewer;
 import rione.viewer.component.AdvancedViewComponent;
 
@@ -58,9 +57,8 @@ public class PanelController extends JFrame implements Controller {
 	private static EntityID currentFocus = null;
 	private static FocusSelectBox focusSelectBox = null;
 	private static FocusURNSelectBox focusURNSelectBox = null;
-	private static String saveFolderName = null;
 	private static JPanel toplevelPanel = null;
-	private static JTextArea focusTextArea = null;
+	//private static JTextArea focusTextArea = null;
 	private static JCheckBox visibleEntityCheckBox = null;
 	private static JCheckBox customExtensionCheckBox = null;
 	private static JCheckBox customRenderCheckBox = null;
@@ -76,11 +74,6 @@ public class PanelController extends JFrame implements Controller {
 	private static ColorBox fbColorBox = null;
 	private static ColorBox pfColorBox = null;
 
-	// テスト用(いくつかぬるぽ吐く)
-	//public static void main(String args[]) {
-	//	new PanelController((AdvancedViewComponent) null);
-	//}
-
 	/**
 	 * Controllerを引き継いでコンストラクト
 	 * @param c
@@ -92,9 +85,12 @@ public class PanelController extends JFrame implements Controller {
 		visibleEntityCheckBox.setSelected(c.visibleEntity());
 		customExtensionCheckBox.setSelected(c.costomExtention());
 		customRenderCheckBox.setSelected(c.customRender());
-		folderNamePathBox.setPathTextBox(c.getSaveFolderName());
 		lastCommandCheckBox.setSelected(c.lastCommand());
 		plotLocationCheckBox.setSelected(c.plotLocation());
+		String folder = c.getSaveFolderName();
+		if (folder != null && !folder.equals("")) {
+			folderNamePathBox.setText(folder);
+		}
 		saveImageCheckBox.setSelected(c.saveImage());
 		saveLogCheckBox.setSelected(c.saveLog());
 		followFocusCheckBox.setSelected(c.followFocus());
@@ -117,7 +113,11 @@ public class PanelController extends JFrame implements Controller {
 			System.err.println("PanelController is Test Mode");
 		}
 		
-		setSize(framewidth, 640);
+		Dimension minSize = new Dimension(framewidth, 640);
+		Dimension maxSize = new Dimension(framewidth, 2048);
+		setSize(minSize);
+		setMinimumSize(minSize);
+		setMaximumSize(maxSize);
 
 		// 最上位パネル
 		toplevelPanel = new JPanel();
@@ -163,35 +163,21 @@ public class PanelController extends JFrame implements Controller {
 		 */
 		
 		// コントローラの設定を保存する
-		JButton saveButton = new JButton();
-		saveButton.setText("SaveController");
-		saveButton.setMaximumSize(new Dimension(width / 3, 24));
-		saveButton.setSize(new Dimension(width * 1 / 3, 24));
-		final Controller _this = this;
+		JButton saveButton = new JButton("SaveController");
+		saveButton.setSize(new Dimension(width / 3, 24));
 		saveButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				ScriptController.createSettingScript(_this);	
+				ScriptController.createSettingScript(PanelController.this);	
 			}
 		});
 		boxList.add(saveButton);
-
-		// フォーカスを表示するラベル
-		focusTextArea = new JTextArea("Focus is NULL");
-		focusTextArea.setSize(width - 24, 22 * 6);//なぜか折り返しありでズレる
-		focusTextArea.setMaximumSize(focusTextArea.getSize());
-		//focusTextArea.setLineWrap(true);//折り返しあり
-		//スクロールペインに追加
-		JScrollPane textScrollPane = new JScrollPane(focusTextArea);
-		textScrollPane.setSize(width, 22 * 6);
-		//boxList.add(focusTextArea);
-		boxList.add(textScrollPane);
 		
-		// フォーカスの移動
+		// フォーカスするEntity
 		focusSelectBox = new FocusSelectBox();
 		boxList.add(focusSelectBox);
 		
-		// フォーカスの移動
+		// フォーカスするURN
 		focusURNSelectBox = new FocusURNSelectBox();
 		boxList.add(focusURNSelectBox);
 
@@ -239,7 +225,7 @@ public class PanelController extends JFrame implements Controller {
 		followFocusCheckBox.setSize(width, 40);
 		boxList.add(followFocusCheckBox);
 		
-		// 追従させるか
+		// シミュレーション終了時に終了させるか
 		killAgentsCheckBox = new JCheckBox("KillAgents", false);
 		killAgentsCheckBox.setSize(width, 40);
 		boxList.add(killAgentsCheckBox);
@@ -262,17 +248,17 @@ public class PanelController extends JFrame implements Controller {
 		
 
 		// 配置
-		toplevelPanel.setLayout(new BoxLayout(toplevelPanel, BoxLayout.Y_AXIS));
+		toplevelPanel.setLayout(new BoxLayout(toplevelPanel, BoxLayout.PAGE_AXIS));
 		for (JComponent c : boxList) {
 			toplevelPanel.add(c);
 		}
 
 		// スクロールペインにパネルを追加
 		JScrollPane scrollPane = new JScrollPane(toplevelPanel, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-		
 		// スクロールペインをFrameに追加
-		getContentPane().add(scrollPane);
-
+		add(scrollPane, BorderLayout.CENTER);
+		//add(scrollPane);
+		
 		setVisible(true);
 	}
 
@@ -326,8 +312,7 @@ public class PanelController extends JFrame implements Controller {
 			if (c == null) {
 				useDefaultColor.setSelected(true);
 			}
-			else
-			{
+			else {
 				useDefaultColor.setSelected(false);
 				customColorChooser.setColor(c);
 			}
@@ -368,39 +353,24 @@ public class PanelController extends JFrame implements Controller {
 			
 			final JLabel nameLabel = new JLabel("FolderPath");
 			nameLabel.setSize(width / 4, 40);
-			nameLabel.setMaximumSize(new Dimension(width * 2 / 8, 24));
+			nameLabel.setMaximumSize(new Dimension(width * 1 / 4, 24));
 			boxList.add(nameLabel);
 			
-			pathTextBox = new JTextField(getSaveFolderName());
-			pathTextBox.setMaximumSize(new Dimension(width * 5 / 8, 40));
+			// カレントディレクトリをデフォルトとして設定する
+			pathTextBox = new JTextField(System.getProperty("user.dir"));
+			pathTextBox.setMaximumSize(new Dimension(width * 4 / 4, 40));
 			pathTextBox.setSize(width * 5 / 8, 24);
 			boxList.add(pathTextBox);
-			
-			final JButton setButton = new JButton("Set");
-			setButton.setMaximumSize(new Dimension(width / 8, 24));
-			setButton.setSize(new Dimension(width * 1 / 8, 24));
-			setButton.addActionListener(new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					setPathTextBox(pathTextBox.getText());	
-				}
-			});
-			boxList.add(setButton);
 			
 			for (JComponent c : boxList) {
 				add(c);
 			}
 		}
-		
-		public void setPathTextBox(final String str) {
-			if (str == null || str.equals("")) {
-				saveFolderName = null;
-				pathTextBox.setText("");
-			}
-			else {
-				saveFolderName = str;
-				pathTextBox.setText(str);
-			}
+		public void setText(String saveFolderName) {
+			pathTextBox.setText(saveFolderName);		
+		}
+		public String getText() {
+			return pathTextBox.getText();
 		}
 	}
 	
@@ -574,11 +544,11 @@ public class PanelController extends JFrame implements Controller {
 			currentFocus = id;
 		}
 		// textAreaの更新
-		try {
-			focusTextArea.setText(AdvancedViewer.createDetailString(getFocus()));
-		} catch (NullPointerException e) {
-			focusTextArea.setText("Focus is NULL");
-		}
+//		try {
+//			focusTextArea.setText(AdvancedViewer.createDetailString(getFocus()));
+//		} catch (NullPointerException e) {
+//			focusTextArea.setText("Focus is NULL");
+//		}
 		// IDBoxの更新
 		focusSelectBox.setSelectedItem(id);
 		viewer.repaint();
@@ -601,7 +571,7 @@ public class PanelController extends JFrame implements Controller {
 	
 	@Override
 	public String getSaveFolderName() {
-		return saveFolderName;
+		return folderNamePathBox.getText();
 	}
 	
 	@Override

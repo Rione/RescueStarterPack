@@ -8,10 +8,12 @@ import java.awt.Stroke;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
 import java.util.Collection;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import rescuecore2.misc.Pair;
 import rescuecore2.misc.gui.ScreenTransform;
 import rescuecore2.standard.entities.Human;
 import rescuecore2.standard.entities.StandardEntity;
@@ -65,9 +67,8 @@ public class AdvancedViewComponent extends AnimatedWorldModelViewer {
 	/** 終点 */
 	private int endY = -1;
 
-	public AdvancedViewComponent(StandardWorldModel w) {
+	public AdvancedViewComponent() {
 		super();
-		world = w;
 
 		addViewListener(new ViewListener() {
 			// ビューコンポーネントがクリックされたときに呼ばれる
@@ -111,8 +112,6 @@ public class AdvancedViewComponent extends AnimatedWorldModelViewer {
 				}
 			}
 		});
-
-		controller = createController();
 	}
 
 	/**
@@ -179,7 +178,8 @@ public class AdvancedViewComponent extends AnimatedWorldModelViewer {
 			if (shape == null) continue;
 			EntityExtension extension = extensionMap.get(id);
 			if (extension == null) continue;
-			extension.render(g, shape);
+			Pair<Integer, Integer> location = world.getEntity(id).getLocation(world);
+			extension.render(g, t, shape, location.first(), location.second());
 		}
 		// フォーカスされたEntityがAgentで、最後に呼び出されたメソッドが公開されていれば表示する
 		DebugAgent agent = getFocusAgent();
@@ -207,7 +207,12 @@ public class AdvancedViewComponent extends AnimatedWorldModelViewer {
 				g.drawString(agent.getCommandsCall(), 16, 16);
 			}
 			if (controller.customRender()) {
-				agent.customRender(g, t, width, height);
+				try {
+					agent.customRender(g, t, width, height);
+				}
+				catch(ConcurrentModificationException e) {
+					//同時アクセス
+				}
 			}
 		}
 
@@ -242,7 +247,7 @@ public class AdvancedViewComponent extends AnimatedWorldModelViewer {
 	/**
 	 * フォーカスされているEntityがAgentならそれを取得
 	 * 
-	 * @return
+	 * @return フォーカス中のエージェント
 	 * @throws NullPointerException
 	 */
 	protected DebugAgent getFocusAgent() {
@@ -256,7 +261,7 @@ public class AdvancedViewComponent extends AnimatedWorldModelViewer {
 	 * 
 	 * @return EntityIDと装飾(EntityExtension)の対応をあらわすマップ
 	 */
-	protected ExtensionMap createColorMap() {
+	private ExtensionMap createColorMap() {
 		// 結果となる装飾マップ
 		ExtensionMap result = new ExtensionMap();
 		DebugAgent agent = getFocusAgent();
@@ -293,6 +298,9 @@ public class AdvancedViewComponent extends AnimatedWorldModelViewer {
 						result.putAll(custom);
 					}
 				}
+				catch(ConcurrentModificationException e) {
+					//同時アクセス
+				}
 				catch(Throwable e) {
 					// customExtension内の例外対策
 					e.printStackTrace();
@@ -302,7 +310,7 @@ public class AdvancedViewComponent extends AnimatedWorldModelViewer {
 		// フォーカス
 		EntityID forcus = controller.getFocus();
 		if (forcus != null) {
-			result.put(forcus, new BorderExtension(Color.YELLOW, 2.0f));
+			result.put(forcus, new BorderExtension(result.get(forcus), Color.YELLOW, 2.0f));
 		}
 		return result;
 	}
@@ -317,13 +325,26 @@ public class AdvancedViewComponent extends AnimatedWorldModelViewer {
 	public static void addTeamAgent(DebugAgent agent) {
 		AgentList.put(agent.getID(), agent);
 	}
+	
+	@Override
+    public void view(Object...obj) {
+		for (Object o : obj) {
+			if (world != o && o instanceof StandardWorldModel) {
+				world = (StandardWorldModel) o;
+				if (controller == null) {
+					controller = createController();
+				}
+			}
+		}
+		super.view(obj);
+	}
 
 	/**
 	 * コントローラを生成
 	 * 
 	 * @return
 	 */
-	private Controller createController() {
+	protected Controller createController() {
 		if (rione.viewer.Viewer.SCRIPT_FLAG) {
 			return new ScriptController(this, null);
 		} else {
