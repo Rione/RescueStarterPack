@@ -3,7 +3,8 @@ RoboCup Rescue Simulation
 
 What is this?
 	This is a sample project to start RoboCup Rescue Simulation(RCRS).
-	It is include sample agents(AmbulanceTeam, FireBrigade, PoliceForce) and Viewer.
+	It is include sample agents(AmbulanceTeam, FireBrigade, PoliceForce)
+	and Viewer.
 
 Dependency:
 	Sun Java 6 or later(not OpenJDK)
@@ -27,7 +28,7 @@ Install and Compile:
 					src
 					jars
 					...
-			(rescue server, example: rescue-1.0a-2011)
+				(rescue server, example: rescue-1.0a-2011)
 	Set environment variable.
 		RCRS_HOME=(rescue folder)
 	Edit (rescue server)/boot/config/kernel-inline.cfg
