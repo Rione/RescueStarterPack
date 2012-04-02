@@ -33,7 +33,7 @@ jars/traffic3.jar:\
 jars/trove-0.1.8.jar:\
 jars/uncommons-maths-1.2.jar:\
 jars/xml-0.0.6.jar:\
-jars/rioneviewer.jar\
+jars/rioneviewer.jar:\
 bin"
 
 java -Xms2048m -Xmx2048m -cp $TEAM_CP sample.LaunchAgents sample.agent.at.DebugAmbulanceTeam*n sample.agent.fb.DebugFireBrigade*n sample.agent.pf.DebugPoliceForce*n sample.agent.SampleCentre*n rione.viewer.AdvancedViewer*1 -h $HOST --loadabletypes.inspect.dir=jars --random.seed=1
